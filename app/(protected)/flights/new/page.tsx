@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Plane, Plus, X } from "lucide-react"
+import { ArrowLeft, Plane } from "lucide-react"
 import Link from "next/link"
 
 export default function NewFlightPage() {
@@ -25,43 +25,17 @@ export default function NewFlightPage() {
     arrivalTime: "",
     capacity: "",
     price: "",
-    pilot: "",
-    copilot: "",
-    flightAttendants: "",
     notes: "",
   })
 
-  const [stopovers, setStopovers] = useState([])
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Nuevo vuelo:", { ...formData, stopovers })
+    console.log("Nuevo vuelo:", formData)
     // Aquí iría la lógica para guardar el vuelo
   }
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const addStopover = () => {
-    setStopovers([
-      ...stopovers,
-      {
-        airport: "",
-        arrivalTime: "",
-        departureTime: "",
-        duration: "",
-      },
-    ])
-  }
-
-  const removeStopover = (index) => {
-    setStopovers(stopovers.filter((_, i) => i !== index))
-  }
-
-  const updateStopover = (index, field, value) => {
-    const updated = stopovers.map((stopover, i) => (i === index ? { ...stopover, [field]: value } : stopover))
-    setStopovers(updated)
   }
 
   return (
@@ -253,141 +227,6 @@ export default function NewFlightPage() {
                 onChange={(e) => handleChange("notes", e.target.value)}
                 rows={3}
               />
-            </div>
-
-            {/* Aircraft and Crew Assignment */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Asignación de Aeronave y Tripulación</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="aircraft">Aeronave Asignada *</Label>
-                  <Select onValueChange={(value) => handleChange("aircraft", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar aeronave" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="N123AA">N123AA - Boeing 737-800</SelectItem>
-                      <SelectItem value="N456UA">N456UA - Airbus A320</SelectItem>
-                      <SelectItem value="N789DL">N789DL - Boeing 757-200</SelectItem>
-                      <SelectItem value="N321SW">N321SW - Boeing 737 MAX 8</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pilot">Piloto *</Label>
-                  <Select onValueChange={(value) => handleChange("pilot", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar piloto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EMP001">Carlos Mendoza - EMP001</SelectItem>
-                      <SelectItem value="EMP004">Luis Fernández - EMP004</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="copilot">Copiloto *</Label>
-                  <Select onValueChange={(value) => handleChange("copilot", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar copiloto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EMP002">Ana García - EMP002</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="flightAttendants">Asistentes de Vuelo</Label>
-                  <Select onValueChange={(value) => handleChange("flightAttendants", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar asistentes" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EMP003">María Rodríguez - EMP003</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Stopovers Section */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Escalas Intermedias</h3>
-                <Button type="button" variant="outline" onClick={addStopover}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Escala
-                </Button>
-              </div>
-
-              {stopovers.length === 0 ? (
-                <p className="text-gray-500 text-sm">No hay escalas programadas. Este es un vuelo directo.</p>
-              ) : (
-                <div className="space-y-4">
-                  {stopovers.map((stopover, index) => (
-                    <Card key={index} className="p-4">
-                      <div className="flex justify-between items-center mb-4">
-                        <h4 className="font-medium">Escala {index + 1}</h4>
-                        <Button type="button" variant="destructive" size="sm" onClick={() => removeStopover(index)}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Aeropuerto de Escala *</Label>
-                          <Select onValueChange={(value) => updateStopover(index, "airport", value)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar aeropuerto" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="ATL">ATL - Atlanta</SelectItem>
-                              <SelectItem value="ORD">ORD - Chicago</SelectItem>
-                              <SelectItem value="DFW">DFW - Dallas</SelectItem>
-                              <SelectItem value="CLT">CLT - Charlotte</SelectItem>
-                              <SelectItem value="PHX">PHX - Phoenix</SelectItem>
-                              <SelectItem value="DEN">DEN - Denver</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Duración de Escala</Label>
-                          <Input
-                            placeholder="ej. 30 min"
-                            value={stopover.duration}
-                            onChange={(e) => updateStopover(index, "duration", e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <div className="space-y-2">
-                          <Label>Hora de Llegada *</Label>
-                          <Input
-                            type="time"
-                            value={stopover.arrivalTime}
-                            onChange={(e) => updateStopover(index, "arrivalTime", e.target.value)}
-                            required
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Hora de Salida *</Label>
-                          <Input
-                            type="time"
-                            value={stopover.departureTime}
-                            onChange={(e) => updateStopover(index, "departureTime", e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="flex gap-4 pt-6">

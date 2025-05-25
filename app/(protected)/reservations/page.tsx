@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -97,6 +100,37 @@ function getClassColor(flightClass: string) {
 }
 
 export default function ReservationsPage() {
+  const [searchTerm, setSearchTerm] = useState("")
+
+  const handleViewDetails = (reservationId: string) => {
+    alert(`Ver detalles de la reserva ${reservationId}`)
+  }
+
+  const handleEditReservation = (reservationId: string) => {
+    alert(`Editar reserva ${reservationId}`)
+  }
+
+  const handleCheckIn = (reservationId: string) => {
+    alert(`Check-in para reserva ${reservationId}`)
+  }
+
+  const handlePrint = (reservationId: string) => {
+    alert(`Imprimir reserva ${reservationId}`)
+  }
+
+  const handleCancel = (reservationId: string) => {
+    if (confirm(`¿Estás seguro de que quieres cancelar la reserva ${reservationId}?`)) {
+      alert(`Reserva ${reservationId} cancelada`)
+    }
+  }
+
+  const filteredReservations = reservations.filter(
+    (reservation) =>
+      reservation.confirmationCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      reservation.passenger.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      reservation.flight.number.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -118,7 +152,12 @@ export default function ReservationsPage() {
           <div className="flex gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input placeholder="Buscar por código de confirmación, pasajero o vuelo..." className="pl-10" />
+              <Input
+                placeholder="Buscar por código de confirmación, pasajero o vuelo..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
             <Button variant="outline">Filtros</Button>
             <Button variant="outline">Exportar</Button>
@@ -128,7 +167,7 @@ export default function ReservationsPage() {
 
       {/* Reservations List */}
       <div className="grid gap-6">
-        {reservations.map((reservation) => (
+        {filteredReservations.map((reservation) => (
           <Card key={reservation.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex justify-between items-start">
@@ -214,19 +253,19 @@ export default function ReservationsPage() {
               </div>
 
               <div className="flex gap-2 mt-6 pt-4 border-t">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handleViewDetails(reservation.id)}>
                   Ver Detalles
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handleEditReservation(reservation.id)}>
                   Editar
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handleCheckIn(reservation.id)}>
                   Check-in
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handlePrint(reservation.id)}>
                   Imprimir
                 </Button>
-                <Button variant="destructive" size="sm">
+                <Button variant="destructive" size="sm" onClick={() => handleCancel(reservation.id)}>
                   Cancelar
                 </Button>
               </div>

@@ -14,33 +14,35 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Plane, Users, Calendar, Home, Menu, LogOut, UserCheck, Building2, Search } from "lucide-react"
+import { Plane, Users, Calendar, Home, Menu, LogOut, User, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "./auth-provider"
 
-// Navegación para administradores (acceso completo)
-const adminNavigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "Vuelos", href: "/flights", icon: Plane },
-  { name: "Pasajeros", href: "/passengers", icon: Users },
-  { name: "Reservas", href: "/reservations", icon: Calendar },
-  { name: "Aviones", href: "/aircraft", icon: Plane },
-  { name: "Personal", href: "/crew", icon: UserCheck },
-  { name: "Aeropuertos", href: "/airports", icon: Building2 },
-]
+const getNavigation = (userRole: string) => {
+  const baseNavigation = [
+    { name: "Dashboard", href: "/", icon: Home },
+    { name: "Vuelos", href: "/flights", icon: Plane },
+    { name: "Pasajeros", href: "/passengers", icon: Users },
+    { name: "Reservas", href: "/reservations", icon: Calendar },
+  ]
 
-// Navegación para usuarios normales (solo reservas y consultas)
-const userNavigation = [
-  { name: "Inicio", href: "/", icon: Home },
-  { name: "Comprar Vuelos", href: "/book-flight", icon: Search },
-  { name: "Mis Reservas", href: "/my-reservations", icon: Calendar },
-]
+  if (userRole === "admin") {
+    baseNavigation.push({
+      name: "Usuarios",
+      href: "/admin/users",
+      icon: Settings,
+    })
+  }
+
+  return baseNavigation
+}
 
 export function Navigation() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
-  const { user, logout, isAdmin, isUser } = useAuth()
+  const { user, logout } = useAuth()
+
+  const navigation = getNavigation(user?.role || "")
 
   const getUserInitials = (name: string) => {
     return name
@@ -53,8 +55,10 @@ export function Navigation() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case "admin":
+        return "bg-red-100 text-red-800"
+      case "operator":
         return "bg-blue-100 text-blue-800"
-      case "user":
+      case "agent":
         return "bg-green-100 text-green-800"
       default:
         return "bg-gray-100 text-gray-800"
@@ -65,18 +69,14 @@ export function Navigation() {
     switch (role) {
       case "admin":
         return "Administrador"
-      case "user":
-        return "Usuario"
+      case "operator":
+        return "Operador"
+      case "agent":
+        return "Agente"
       default:
         return "Usuario"
     }
   }
-
-  // Seleccionar navegación según el rol
-  const navigation = isAdmin() ? adminNavigation : userNavigation
-
-  // Nombre de la empresa según el rol
-  const companyName = isAdmin() ? "AeroAdmin" : "SkyWings Airlines"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -84,7 +84,7 @@ export function Navigation() {
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Plane className="h-6 w-6" />
-            <span className="hidden font-bold sm:inline-block">{companyName}</span>
+            <span className="hidden font-bold sm:inline-block">AeroAdmin</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             {navigation.map((item) => (
@@ -115,7 +115,7 @@ export function Navigation() {
           <SheetContent side="left" className="pr-0">
             <Link href="/" className="flex items-center space-x-2" onClick={() => setIsOpen(false)}>
               <Plane className="h-6 w-6" />
-              <span className="font-bold">{companyName}</span>
+              <span className="font-bold">AeroAdmin</span>
             </Link>
             <div className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
               <div className="flex flex-col space-y-3">
@@ -142,16 +142,16 @@ export function Navigation() {
           <div className="w-full flex-1 md:w-auto md:flex-none">
             <Link href="/" className="flex items-center space-x-2 md:hidden">
               <Plane className="h-6 w-6" />
-              <span className="font-bold">{companyName}</span>
+              <span className="font-bold">AeroAdmin</span>
             </Link>
           </div>
 
-          {/* User Menu Simplificado */}
+          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className={isAdmin() ? "bg-blue-600 text-white" : "bg-green-600 text-white"}>
+                  <AvatarFallback className="bg-blue-600 text-white">
                     {getUserInitials(user?.name || "")}
                   </AvatarFallback>
                 </Avatar>
@@ -163,10 +163,23 @@ export function Navigation() {
                   <p className="text-sm font-medium leading-none">{user?.name}</p>
                   <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
                   <div className="mt-2">
-                    <Badge className={getRoleColor(user?.role || "")}>{getRoleName(user?.role || "")}</Badge>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user?.role || "")}`}
+                    >
+                      {getRoleName(user?.role || "")}
+                    </span>
                   </div>
                 </div>
               </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <User className="mr-2 h-4 w-4" />
+                <span>Perfil</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Configuración</span>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-red-600">
                 <LogOut className="mr-2 h-4 w-4" />

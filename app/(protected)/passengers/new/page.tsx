@@ -16,9 +16,6 @@ export default function NewPassengerPage() {
   const [formData, setFormData] = useState({
     documentType: "",
     documentNumber: "",
-    passportNumber: "",
-    passportExpiry: "",
-    passportCountry: "",
     firstName: "",
     lastName: "",
     birthDate: "",
@@ -74,8 +71,8 @@ export default function NewPassengerPage() {
                     <SelectValue placeholder="Seleccionar tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pasaporte">Pasaporte</SelectItem>
                     <SelectItem value="cedula">Cédula de Ciudadanía</SelectItem>
+                    <SelectItem value="pasaporte">Pasaporte</SelectItem>
                     <SelectItem value="cedula_extranjeria">Cédula de Extranjería</SelectItem>
                     <SelectItem value="tarjeta_identidad">Tarjeta de Identidad</SelectItem>
                   </SelectContent>
@@ -90,50 +87,6 @@ export default function NewPassengerPage() {
                   onChange={(e) => handleChange("documentNumber", e.target.value)}
                   required
                 />
-              </div>
-            </div>
-
-            {/* Passport Info - Required */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Información de Pasaporte *</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="passportNumber">Número de Pasaporte *</Label>
-                  <Input
-                    id="passportNumber"
-                    placeholder="ej. AB1234567"
-                    value={formData.passportNumber}
-                    onChange={(e) => handleChange("passportNumber", e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="passportExpiry">Vencimiento del Pasaporte *</Label>
-                  <Input
-                    id="passportExpiry"
-                    type="date"
-                    value={formData.passportExpiry}
-                    onChange={(e) => handleChange("passportExpiry", e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="passportCountry">País Emisor *</Label>
-                  <Select onValueChange={(value) => handleChange("passportCountry", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="País del pasaporte" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="colombia">Colombia</SelectItem>
-                      <SelectItem value="usa">Estados Unidos</SelectItem>
-                      <SelectItem value="mexico">México</SelectItem>
-                      <SelectItem value="argentina">Argentina</SelectItem>
-                      <SelectItem value="brasil">Brasil</SelectItem>
-                      <SelectItem value="chile">Chile</SelectItem>
-                      <SelectItem value="peru">Perú</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
             </div>
 

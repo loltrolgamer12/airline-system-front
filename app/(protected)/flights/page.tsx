@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -17,14 +20,6 @@ const flights = [
     aircraft: "Boeing 737",
     capacity: 180,
     occupied: 142,
-    stopovers: [
-      {
-        airport: "ORD",
-        arrivalTime: "10:15",
-        departureTime: "10:45",
-        duration: "30 min",
-      },
-    ],
   },
   {
     id: "UA456",
@@ -38,7 +33,6 @@ const flights = [
     aircraft: "Airbus A320",
     capacity: 150,
     occupied: 128,
-    stopovers: [],
   },
   {
     id: "DL789",
@@ -52,20 +46,6 @@ const flights = [
     aircraft: "Boeing 757",
     capacity: 200,
     occupied: 165,
-    stopovers: [
-      {
-        airport: "ATL",
-        arrivalTime: "17:30",
-        departureTime: "18:00",
-        duration: "30 min",
-      },
-      {
-        airport: "CLT",
-        arrivalTime: "18:45",
-        departureTime: "19:00",
-        duration: "15 min",
-      },
-    ],
   },
 ]
 
@@ -85,6 +65,20 @@ function getStatusColor(status: string) {
 }
 
 export default function FlightsPage() {
+  const [selectedFlight, setSelectedFlight] = useState<string | null>(null)
+
+  const handleViewDetails = (flightId: string) => {
+    alert(`Ver detalles del vuelo ${flightId}`)
+  }
+
+  const handleEditFlight = (flightId: string) => {
+    alert(`Editar vuelo ${flightId}`)
+  }
+
+  const handleViewPassengers = (flightId: string) => {
+    alert(`Ver pasajeros del vuelo ${flightId}`)
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -118,7 +112,7 @@ export default function FlightsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Route Info */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -169,43 +163,18 @@ export default function FlightsPage() {
                     {Math.round((flight.occupied / flight.capacity) * 100)}% ocupado
                   </div>
                 </div>
-
-                {/* Stopovers */}
-                {flight.stopovers && flight.stopovers.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gray-500" />
-                      Escalas ({flight.stopovers.length})
-                    </div>
-                    <div className="space-y-1">
-                      {flight.stopovers.map((stopover, index) => (
-                        <div key={index} className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                          <div className="font-medium">{stopover.airport}</div>
-                          <div>Llegada: {stopover.arrivalTime}</div>
-                          <div>Salida: {stopover.departureTime}</div>
-                          <div>Duración: {stopover.duration}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="flex gap-2 mt-6">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handleViewDetails(flight.id)}>
                   Ver Detalles
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handleEditFlight(flight.id)}>
                   Editar
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handleViewPassengers(flight.id)}>
                   Pasajeros
                 </Button>
-                <Link href={`/flights/${flight.id}/stopovers`}>
-                  <Button variant="outline" size="sm">
-                    Escalas ({flight.stopovers?.length || 0})
-                  </Button>
-                </Link>
               </div>
             </CardContent>
           </Card>

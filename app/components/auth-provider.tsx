@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { createContext, useContext, useEffect, useState } from "react"
 import { LoginForm } from "./login-form"
 import { Navigation } from "./navigation"
@@ -11,17 +10,23 @@ interface User {
   email: string
   name: string
   role: string
-  permissions: string[]
 }
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<boolean>
+  register: (userData: RegisterData) => Promise<{ success: boolean; message: string }>
   logout: () => void
   isLoading: boolean
-  hasPermission: (permission: string) => boolean
-  isAdmin: () => boolean
-  isUser: () => boolean
+}
+
+interface RegisterData {
+  email: string
+  password: string
+  name: string
+  phone: string
+  documentType: string
+  documentNumber: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -34,95 +39,28 @@ export function useAuth() {
   return context
 }
 
-// Definición de permisos por rol
-const rolePermissions = {
-  admin: [
-    // Gestión completa de vuelos
-    "flights.view",
-    "flights.create",
-    "flights.edit",
-    "flights.delete",
-    // Gestión completa de pasajeros
-    "passengers.view",
-    "passengers.create",
-    "passengers.edit",
-    "passengers.delete",
-    // Gestión completa de reservas
-    "reservations.view",
-    "reservations.create",
-    "reservations.edit",
-    "reservations.delete",
-    // Gestión de aeronaves
-    "aircraft.view",
-    "aircraft.create",
-    "aircraft.edit",
-    "aircraft.delete",
-    // Gestión de personal
-    "crew.view",
-    "crew.create",
-    "crew.edit",
-    "crew.delete",
-    // Gestión de aeropuertos
-    "airports.view",
-    "airports.create",
-    "airports.edit",
-    "airports.delete",
-    // Reportes y estadísticas
-    "reports.view",
-    "reports.create",
-    // Dashboard administrativo
-    "dashboard.admin",
-  ],
-  user: [
-    // Solo consulta de vuelos disponibles
-    "flights.view",
-    // Solo consulta de aeropuertos para reservas
-    "airports.view",
-    // Gestión de sus propias reservas
-    "reservations.view_own",
-    "reservations.create_own",
-    "reservations.edit_own",
-    // Gestión de su propio perfil de pasajero
-    "passengers.view_own",
-    "passengers.edit_own",
-    // Dashboard de usuario
-    "dashboard.user",
-  ],
-}
-
-// Usuarios de prueba simplificados
+// Usuarios de prueba actualizados
 const mockUsers = [
   {
     id: "1",
     email: "admin@aeroadmin.com",
     password: "admin123",
-    name: "Administrador del Sistema",
+    name: "Administrador",
     role: "admin",
-    permissions: rolePermissions.admin,
   },
   {
     id: "2",
-    email: "usuario@aeroadmin.com",
-    password: "usuario123",
-    name: "Juan Pérez",
-    role: "user",
-    permissions: rolePermissions.user,
+    email: "operador@aeroadmin.com",
+    password: "operador123",
+    name: "Operador de Vuelos",
+    role: "operator",
   },
   {
     id: "3",
-    email: "maria@email.com",
-    password: "maria123",
-    name: "María García",
-    role: "user",
-    permissions: rolePermissions.user,
-  },
-  {
-    id: "4",
-    email: "carlos@email.com",
-    password: "carlos123",
-    name: "Carlos Rodríguez",
-    role: "user",
-    permissions: rolePermissions.user,
+    email: "agente@aeroadmin.com",
+    password: "agente123",
+    name: "Agente de Reservas",
+    role: "agent",
   },
 ]
 
@@ -134,7 +72,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Verificar si hay una sesión guardada
     const savedUser = localStorage.getItem("user")
     if (savedUser) {
-      setUser(JSON.parse(savedUser))
+      try {
+        setUser(JSON.parse(savedUser))
+      } catch (error) {
+        console.error("Error parsing saved user:", error)
+        localStorage.removeItem("user")
+      }
     }
     setIsLoading(false)
   }, [])
@@ -153,7 +96,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: foundUser.email,
         name: foundUser.name,
         role: foundUser.role,
-        permissions: foundUser.permissions,
       }
       setUser(userWithoutPassword)
       localStorage.setItem("user", JSON.stringify(userWithoutPassword))
@@ -165,22 +107,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false
   }
 
+  const register = async (userData: RegisterData): Promise<{ success: boolean; message: string }> => {
+    setIsLoading(true)
+
+    // Simular delay de registro
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // Verificar si el email ya existe
+    const existingUser = mockUsers.find((u) => u.email === userData.email)
+    if (existingUser) {
+      setIsLoading(false)
+      return { success: false, message: "El email ya está registrado" }
+    }
+
+    // Crear nuevo usuario (en una app real, esto se enviaría al backend)
+    const newUser = {
+      id: Date.now().toString(),
+      email: userData.email,
+      password: userData.password,
+      name: userData.name,
+      role: "passenger", // Los usuarios normales son pasajeros
+    }
+
+    // En una app real, esto se guardaría en la base de datos
+    mockUsers.push(newUser)
+
+    setIsLoading(false)
+    return { success: true, message: "Usuario registrado exitosamente" }
+  }
+
   const logout = () => {
     setUser(null)
     localStorage.removeItem("user")
-  }
-
-  const hasPermission = (permission: string): boolean => {
-    if (!user) return false
-    return user.permissions.includes(permission)
-  }
-
-  const isAdmin = (): boolean => {
-    return user?.role === "admin"
-  }
-
-  const isUser = (): boolean => {
-    return user?.role === "user"
   }
 
   if (isLoading) {
@@ -196,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading, hasPermission, isAdmin, isUser }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
       <Navigation />
       {children}
     </AuthContext.Provider>

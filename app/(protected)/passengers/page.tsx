@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -70,6 +73,32 @@ function getStatusColor(status: string) {
 }
 
 export default function PassengersPage() {
+  const [searchTerm, setSearchTerm] = useState("")
+
+  const handleViewProfile = (passengerId: string) => {
+    alert(`Ver perfil del pasajero ${passengerId}`)
+  }
+
+  const handleEditPassenger = (passengerId: string) => {
+    alert(`Editar pasajero ${passengerId}`)
+  }
+
+  const handleViewHistory = (passengerId: string) => {
+    alert(`Ver historial del pasajero ${passengerId}`)
+  }
+
+  const handleNewReservation = (passengerId: string) => {
+    alert(`Nueva reserva para pasajero ${passengerId}`)
+  }
+
+  const filteredPassengers = passengers.filter(
+    (passenger) =>
+      passenger.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      passenger.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      passenger.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      passenger.id.includes(searchTerm),
+  )
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -91,7 +120,12 @@ export default function PassengersPage() {
           <div className="flex gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input placeholder="Buscar por nombre, documento o email..." className="pl-10" />
+              <Input
+                placeholder="Buscar por nombre, documento o email..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
             <Button variant="outline">Filtros</Button>
           </div>
@@ -100,7 +134,7 @@ export default function PassengersPage() {
 
       {/* Passengers List */}
       <div className="grid gap-4">
-        {passengers.map((passenger) => (
+        {filteredPassengers.map((passenger) => (
           <Card key={passenger.id} className="hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
@@ -150,16 +184,16 @@ export default function PassengersPage() {
                 </div>
 
                 <div className="flex gap-2 mt-4">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => handleViewProfile(passenger.id)}>
                     Ver Perfil
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => handleEditPassenger(passenger.id)}>
                     Editar
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => handleViewHistory(passenger.id)}>
                     Historial
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => handleNewReservation(passenger.id)}>
                     Nueva Reserva
                   </Button>
                 </div>
