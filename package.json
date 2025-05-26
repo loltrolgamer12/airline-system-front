@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "dev:debug": "next dev --turbo",
+    "build:analyze": "cross-env ANALYZE=true next build",
+    "health-check": "curl -f http://localhost:3000/api/health || exit 1",
+    "start:prod": "next start -p 3000"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
