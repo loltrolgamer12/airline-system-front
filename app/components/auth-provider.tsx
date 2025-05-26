@@ -4,7 +4,7 @@ import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { LoginForm } from "./login-form"
 import { Navigation } from "./navigation"
-import { apiClient, isTokenValid, clearAuthData } from "@/lib/api"
+import { apiClient, isTokenValid, clearAuthData, setAuthToken } from "@/lib/api"
 
 interface User {
   id: string
@@ -29,9 +29,9 @@ interface RegisterData {
   email: string
   password: string
   name: string
-  phone: string
-  documentType: string
-  documentNumber: string
+  phone?: string
+  documentType?: string
+  documentNumber?: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -100,12 +100,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.user && response.access_token) {
         console.log('✅ Login exitoso:', response.user.name)
         
+        // Guardar token y datos del usuario
+        setAuthToken(response.access_token)
         setUser(response.user)
         setIsAuthenticated(true)
         
-        // Guardar datos en localStorage
+        // Guardar datos en localStorage para persistencia
         localStorage.setItem('user', JSON.stringify(response.user))
-        localStorage.setItem('access_token', response.access_token)
         
         setIsLoading(false)
         return true
@@ -126,36 +127,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
 
     try {
-      // Nota: Este endpoint puede no existir en el backend actual
-      // Verificar si está implementado en user-service
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: userData.email,
-          password: userData.password,
-          name: userData.name,
-          role: 'passenger', // Los nuevos usuarios son pasajeros por defecto
-        }),
+      await apiClient.register({
+        email: userData.email,
+        password: userData.password,
+        name: userData.name,
+        role: 'passenger', // Los nuevos usuarios son pasajeros por defecto
       })
 
-      if (response.ok) {
-        console.log('✅ Registro exitoso')
-        setIsLoading(false)
-        return { success: true, message: "Usuario registrado exitosamente" }
-      } else {
-        const errorData = await response.json().catch(() => ({}))
-        const errorMessage = errorData.detail || errorData.message || 'Error en el registro'
-        console.error('❌ Error en registro:', errorMessage)
-        setIsLoading(false)
-        return { success: false, message: errorMessage }
-      }
+      console.log('✅ Registro exitoso')
+      setIsLoading(false)
+      return { success: true, message: "Usuario registrado exitosamente" }
     } catch (error) {
       console.error('❌ Error durante registro:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Error de conexión durante el registro'
       setIsLoading(false)
-      return { success: false, message: 'Error de conexión durante el registro' }
+      return { success: false, message: errorMessage }
     }
   }
 
@@ -196,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Mostrar login si no está autenticado
   if (!isAuthenticated || !user) {
-    return <LoginForm onLogin={login} />
+    return <LoginForm onLogin={login} onRegister={register} />
   }
 
   // Mostrar aplicación si está autenticado
@@ -264,34 +250,4 @@ export const usePermissions = () => {
     isAgent: user?.role === 'agent',
     isPassenger: user?.role === 'passenger',
   }
-}
-
-// Componente para proteger rutas
-export const ProtectedRoute: React.FC<{
-  children: React.ReactNode
-  requiredRole?: string
-  requiredRoles?: string[]
-  fallback?: React.ReactNode
-}> = ({ children, requiredRole, requiredRoles, fallback }) => {
-  const { hasRole, hasAnyRole } = usePermissions()
-
-  if (requiredRole && !hasRole(requiredRole)) {
-    return fallback || (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">Acceso Denegado</h1>
-        <p className="text-gray-600">No tienes permisos para acceder a esta sección.</p>
-      </div>
-    )
-  }
-
-  if (requiredRoles && !hasAnyRole(requiredRoles)) {
-    return fallback || (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">Acceso Denegado</h1>
-        <p className="text-gray-600">No tienes permisos para acceder a esta sección.</p>
-      </div>
-    )
-  }
-
-  return <>{children}</>
 }
