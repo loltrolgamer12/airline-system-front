@@ -1,282 +1,261 @@
-// lib/api.ts - Cliente API completo
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
-// Tipos de datos
-interface User {
-  id: string
-  email: string
-  name: string
-  role: string
-  is_active: boolean
-  created_at: string
-  last_login?: string
-}
-
-interface LoginRequest {
-  email: string
-  password: string
-}
-
-interface LoginResponse {
-  user: User
-  access_token: string
-  token_type: string
-  expires_in: number
-}
-
-interface RegisterRequest {
-  email: string
-  password: string
-  name: string
-  role?: string
-}
-
-interface Flight {
-  id: string
-  flight_number: string
-  airline: string
-  origin_airport: string
-  destination_airport: string
-  departure_time: string
-  arrival_time: string
-  price: number
-  available_seats: number
-  total_seats: number
-  status: string
-  aircraft_type?: string
-  occupancy_rate?: number
-}
-
-interface Passenger {
-  id: string
-  identification_number: string
-  first_name: string
-  last_name: string
-  nationality: string
-  birth_date: string
-  email?: string
-  phone?: string
-  document_type?: string
-}
-
-interface Reservation {
-  id: string
-  reservation_code: string
-  passenger_identification: string
-  flight_number: string
-  seat_number?: string
-  status: string
-  created_at: string
-  passenger_name?: string
-  flight_route?: string
-}
-
-// Utilidades para manejo de tokens
-export const getAuthToken = (): string | null => {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem('access_token')
-}
-
-export const setAuthToken = (token: string): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('access_token', token)
-  }
-}
-
-export const clearAuthData = (): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('user')
-  }
-}
-
-export const isTokenValid = (): boolean => {
-  const token = getAuthToken()
-  if (!token) return false
-  
-  try {
-    const userData = localStorage.getItem('user')
-    return !!userData
-  } catch {
-    return false
-  }
-}
-
-// Cliente API principal
 class ApiClient {
-  private baseUrl: string
+  private baseURL: string
 
-  constructor(baseUrl: string = API_BASE_URL) {
-    this.baseUrl = baseUrl
+  constructor(baseURL: string) {
+    this.baseURL = baseURL
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
-    const token = getAuthToken()
-
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-      ...options,
-    }
-
-    try {
-      console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`)
-      
-      const response = await fetch(url, config)
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error(`❌ API Error (${response.status}):`, errorText)
-        
-        if (response.status === 401) {
-          clearAuthData()
-          if (typeof window !== 'undefined') {
-            window.location.href = '/'
-          }
-        }
-        
-        throw new Error(`HTTP ${response.status}: ${errorText}`)
-      }
-
-      const data = await response.json()
-      console.log(`✅ API Response:`, data)
-      return data
-    } catch (error) {
-      console.error(`❌ Network Error for ${url}:`, error)
-      throw error
+  private getAuthHeaders(): HeadersInit {
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+    return {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
     }
   }
 
-  // Autenticación
-  async login(credentials: LoginRequest): Promise<LoginResponse> {
-    return this.request<LoginResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    })
-  }
-
-  async register(userData: RegisterRequest): Promise<{ message: string }> {
-    return this.request<{ message: string }>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    })
-  }
-
-  async logout(): Promise<void> {
-    try {
-      await this.request('/auth/logout', { method: 'POST' })
-    } catch (error) {
-      console.warn('Logout error (continuing with local cleanup):', error)
+  private async handleResponse<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: "Network error" }))
+      throw new Error(error.detail || `HTTP ${response.status}`)
     }
+    return response.json()
   }
 
-  async getCurrentUser(): Promise<User> {
-    return this.request<User>('/auth/me')
-  }
-
-  // Vuelos
+  // Flights API
   async getFlights(params?: {
     origin?: string
     destination?: string
-    date?: string
-    available_only?: boolean
+    departure_date?: string
+    min_price?: number
     max_price?: number
-  }): Promise<Flight[]> {
-    const queryParams = new URLSearchParams()
+    status?: string
+    available_only?: boolean
+    skip?: number
+    limit?: number
+  }) {
+    const searchParams = new URLSearchParams()
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
-          queryParams.append(key, value.toString())
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString())
         }
       })
     }
-    
-    const query = queryParams.toString()
-    return this.request<Flight[]>(`/flights${query ? `?${query}` : ''}`)
+
+    const response = await fetch(`${this.baseURL}/api/v1/flights?${searchParams}`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+    })
+    return this.handleResponse(response)
   }
 
-  async getFlight(id: string): Promise<Flight> {
-    return this.request<Flight>(`/flights/${id}`)
+  async getFlight(flightNumber: string) {
+    const response = await fetch(`${this.baseURL}/api/v1/flights/${flightNumber}`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
   }
 
-  async createFlight(flightData: Partial<Flight>): Promise<Flight> {
-    return this.request<Flight>('/flights', {
-      method: 'POST',
+  async createFlight(flightData: any) {
+    const response = await fetch(`${this.baseURL}/api/v1/flights`, {
+      method: "POST",
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(flightData),
+      signal: AbortSignal.timeout(10000),
     })
+    return this.handleResponse(response)
   }
 
-  // Pasajeros
-  async getPassengers(): Promise<Passenger[]> {
-    return this.request<Passenger[]>('/passengers')
+  async updateFlight(flightNumber: string, updateData: any) {
+    const response = await fetch(`${this.baseURL}/api/v1/flights/${flightNumber}`, {
+      method: "PUT",
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(updateData),
+      signal: AbortSignal.timeout(10000),
+    })
+    return this.handleResponse(response)
   }
 
-  async getPassenger(id: string): Promise<Passenger> {
-    return this.request<Passenger>(`/passengers/${id}`)
+  // Passengers API
+  async getPassengers(skip = 0, limit = 100) {
+    const response = await fetch(`${this.baseURL}/api/v1/passengers?skip=${skip}&limit=${limit}`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
   }
 
-  async createPassenger(passengerData: Partial<Passenger>): Promise<Passenger> {
-    return this.request<Passenger>('/passengers', {
-      method: 'POST',
+  async getPassenger(identification: string) {
+    const response = await fetch(`${this.baseURL}/api/v1/passengers/${identification}`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
+  }
+
+  async createPassenger(passengerData: any) {
+    const response = await fetch(`${this.baseURL}/api/v1/passengers`, {
+      method: "POST",
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(passengerData),
+      signal: AbortSignal.timeout(10000),
     })
+    return this.handleResponse(response)
   }
 
-  // Reservas
-  async getReservations(): Promise<Reservation[]> {
-    return this.request<Reservation[]>('/reservations')
+  async updatePassenger(identification: string, updateData: any) {
+    const response = await fetch(`${this.baseURL}/api/v1/passengers/${identification}`, {
+      method: "PUT",
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(updateData),
+      signal: AbortSignal.timeout(10000),
+    })
+    return this.handleResponse(response)
   }
 
-  async getReservation(id: string): Promise<Reservation> {
-    return this.request<Reservation>(`/reservations/${id}`)
+  // Reservations API
+  async getReservations(skip = 0, limit = 100) {
+    const response = await fetch(`${this.baseURL}/api/v1/reservations?skip=${skip}&limit=${limit}`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
   }
 
-  async createReservation(reservationData: {
-    passenger_identification: string
-    flight_number: string
-    seat_preference?: string
-  }): Promise<Reservation> {
-    return this.request<Reservation>('/reservations', {
-      method: 'POST',
+  async getReservation(reservationCode: string) {
+    const response = await fetch(`${this.baseURL}/api/v1/reservations/${reservationCode}`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
+  }
+
+  async createReservation(reservationData: any) {
+    const response = await fetch(`${this.baseURL}/api/v1/reservations`, {
+      method: "POST",
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(reservationData),
+      signal: AbortSignal.timeout(10000),
     })
+    return this.handleResponse(response)
   }
 
-  // Usuarios (solo para administradores)
-  async getUsers(): Promise<User[]> {
-    return this.request<User[]>('/users')
+  async updateReservationStatus(reservationCode: string, status: string) {
+    const response = await fetch(`${this.baseURL}/api/v1/reservations/${reservationCode}/status?new_status=${status}`, {
+      method: "PUT",
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(10000),
+    })
+    return this.handleResponse(response)
   }
 
-  async createUser(userData: RegisterRequest): Promise<User> {
-    return this.request<User>('/users', {
-      method: 'POST',
+  // Airports API
+  async getAirports(skip = 0, limit = 100) {
+    const response = await fetch(`${this.baseURL}/api/v1/airports?skip=${skip}&limit=${limit}`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
+  }
+
+  // Aircraft API
+  async getAircraft(skip = 0, limit = 100) {
+    const response = await fetch(`${this.baseURL}/api/v1/aircraft?skip=${skip}&limit=${limit}`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
+  }
+
+  async getAvailableAircraftCount() {
+    const response = await fetch(`${this.baseURL}/api/v1/aircraft/available/count`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
+  }
+
+  // Crew API
+  async getCrew(skip = 0, limit = 100) {
+    const response = await fetch(`${this.baseURL}/api/v1/crew?skip=${skip}&limit=${limit}`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
+  }
+
+  async getAvailableCrewByPosition() {
+    const response = await fetch(`${this.baseURL}/api/v1/crew/available/by-position`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
+  }
+
+  // Users API
+  async getUsers(skip = 0, limit = 100) {
+    const response = await fetch(`${this.baseURL}/api/v1/users?skip=${skip}&limit=${limit}`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
+  }
+
+  async createUser(userData: any) {
+    const response = await fetch(`${this.baseURL}/api/v1/users`, {
+      method: "POST",
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(userData),
+      signal: AbortSignal.timeout(10000),
     })
+    return this.handleResponse(response)
   }
 
-  // Health check
-  async healthCheck(): Promise<{ status: string; services: Record<string, string> }> {
-    return this.request<{ status: string; services: Record<string, string> }>('/health')
+  async updateUser(userId: string, updateData: any) {
+    const response = await fetch(`${this.baseURL}/api/v1/users/${userId}`, {
+      method: "PUT",
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(updateData),
+      signal: AbortSignal.timeout(10000),
+    })
+    return this.handleResponse(response)
+  }
+
+  async deleteUser(userId: string) {
+    const response = await fetch(`${this.baseURL}/api/v1/users/${userId}`, {
+      method: "DELETE",
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: "Delete failed" }))
+      throw new Error(error.detail || `HTTP ${response.status}`)
+    }
+  }
+
+  // Health check - simplified and more resilient
+  async getHealth() {
+    try {
+      const response = await fetch(`${this.baseURL}/health`, {
+        signal: AbortSignal.timeout(3000), // Short timeout for health check
+      })
+      return this.handleResponse(response)
+    } catch (error) {
+      throw new Error("Health service unavailable")
+    }
+  }
+
+  // Circuit breaker stats
+  async getCircuitBreakerStats() {
+    const response = await fetch(`${this.baseURL}/api/v1/circuit-breaker/stats`, {
+      headers: this.getAuthHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    return this.handleResponse(response)
   }
 }
 
-// Instancia singleton del cliente API
-export const apiClient = new ApiClient()
-
-// Exportar tipos
-export type {
-  User,
-  LoginRequest,
-  LoginResponse,
-  RegisterRequest,
-  Flight,
-  Passenger,
-  Reservation,
-}
+export const apiClient = new ApiClient(API_BASE_URL)
